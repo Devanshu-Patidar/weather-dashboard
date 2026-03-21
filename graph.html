@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkySense — Weather Graph</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="graph.css" />
+</head>
+<body class="graph-page">
+  <header class="graph-header">
+    <button class="theme-toggle graph-theme-toggle" id="graphThemeToggle" aria-label="Toggle day and night theme">Day</button>
+    <a href="index.html" class="back-link">← Back to Dashboard</a>
+    <h1>Weather Graph</h1>
+    <p class="graph-location" id="graphLocation">Loading...</p>
+  </header>
+  <main class="graph-main">
+    <section class="graph-section">
+      <h2>Temperature (°C)</h2>
+      <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
+    </section>
+    <section class="graph-section">
+      <h2>Air Quality Index</h2>
+      <div class="aqi-wrap">
+        <div class="aqi-head">
+          <span class="aqi-big-value" id="aqiBigValue">--</span>
+          <p class="aqi-desc" id="aqiDesc">Loading...</p>
+        </div>
+        <div class="aqi-scale-wrap">
+          <div class="aqi-gradient-bar" id="aqiGradientBar" aria-hidden="true"></div>
+          <div class="aqi-marker" id="aqiMarker" role="presentation">
+            <span class="aqi-marker-triangle"></span>
+          </div>
+        </div>
+        <div class="aqi-scale-labels">
+          <span>0</span><span>50</span><span>100</span><span>150</span><span>200</span><span>250</span><span>300</span><span>350</span><span>400</span><span>450</span><span>500</span>
+        </div>
+        <p class="aqi-learn"><a href="https://waqi.info/" target="_blank" rel="noopener">Learn more about Air Quality Index</a></p>
+      </div>
+    </section>
+    <section class="graph-section">
+      <h2>Humidity</h2>
+      <div class="chart-wrap"><canvas id="humidityChart"></canvas></div>
+    </section>
+  </main>
+  <div id="graphStatus" class="graph-status"></div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+  <script src="graph.js"></script>
+</body>
+</html>

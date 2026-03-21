@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkySense Weather</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="hero" id="home">
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle day and night theme">
+      Day
+    </button>
+    <div class="hero-content">
+      <h1 class="app-title">SkySense Weather</h1>
+      <p class="app-tagline">Real-time weather with human-friendly tips.</p>
+      <p class="app-intro">
+        SkySense is a simple weather app that not only shows numbers like temperature and wind speed,
+        but also tells you in plain language how to prepare for the day.
+      </p>
+      <div class="hero-highlights">
+        <div class="highlight-card">
+          <h3>Smart Prep Tips</h3>
+          <p>We turn raw weather data into outfit and activity suggestions, so you instantly know what to wear and what to plan.</p>
+        </div>
+        <div class="highlight-card">
+          <h3>Location Aware</h3>
+          <p>Use your current location or search any city to get live weather powered by a trusted weather API.</p>
+        </div>
+        <div class="highlight-card">
+          <h3>Young & Minimal</h3>
+          <p>Clean layout, soft gradients and tiny animations keep the interface modern and distraction-free.</p>
+        </div>
+      </div>
+
+      <button class="primary-btn" id="openDashboardBtn">
+        Open Weather Dashboard
+      </button>
+    </div>
+  </header>
+  <main>
+    <section class="dashboard" id="dashboard">
+      <div class="dashboard-header">
+        <h2>Live Weather Dashboard</h2>
+        <p>Check real-time weather, feels-like conditions, and simple preparation tips.</p>
+      </div>
+      <div class="search-row">
+        <div class="search-group">
+          <input
+            type="text"
+            id="cityInput"
+            placeholder="Enter city (Example: Manali, IN)"
+            aria-label="City name"
+          />
+          <button id="searchBtn" class="primary-btn">Search</button>
+        </div>
+        <button id="locationBtn" class="secondary-btn">
+          Use My Location
+        </button>
+      </div>
+      <div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
+      <div id="cityMatches" class="city-matches hidden" aria-label="City search matches"></div>
+      <div class="cards-grid">
+        <article class="card" id="currentWeatherCard">
+          <h3>Current Weather</h3>
+          <div class="weather-main">
+            <div>
+              <p class="weather-location" id="locationName">No city selected</p>
+              <p class="weather-temp" id="temperature">--°C</p>
+              <p class="weather-desc" id="weatherDescription">Search for a city to begin.</p>
+            </div>
+            <div class="weather-icon-wrapper">
+              <img id="weatherIcon" src="" alt="" class="weather-icon hidden" />
+            </div>
+          </div>
+
+          <div class="weather-details">
+            <div>
+              <span class="label">Feels like</span>
+              <span id="feelsLike">--°C</span>
+            </div>
+            <div>
+              <span class="label">Humidity</span>
+              <span id="humidity">--%</span>
+            </div>
+            <div>
+              <span class="label">Wind</span>
+              <span id="wind">-- km/h</span>
+            </div>
+            <div>
+              <span class="label">Min / Max</span>
+              <span id="minMax">-- / -- °C</span>
+            </div>
+          </div>
+
+          <p class="updated-time" id="updatedTime">Last updated: --</p>
+          <button class="secondary-btn show-graph-btn" id="showGraphBtn" disabled>
+            Show Graph
+          </button>
+        </article>
+        <article class="card" id="prepCard">
+          <h3>How to Prepare</h3>
+          <p class="prep-summary" id="prepSummary">
+            Once you load a city, SkySense will translate the weather into simple tips about what to wear and what to do.
+          </p>
+          <div class="prep-details">
+            <div class="prep-block">
+              <h4>Outfit Suggestion</h4>
+              <p id="outfitSuggestion">-</p>
+            </div>
+            <div class="prep-block">
+              <h4>Activity Idea</h4>
+              <p id="activitySuggestion">-</p>
+            </div>
+            <div class="prep-block">
+              <h4>Mood Vibe</h4>
+              <p id="moodLine">-</p>
+            </div>
+          </div>
+        </article>
+        <article class="card" id="hourlyCard">
+          <h3>12-Hour Timeline</h3>
+          <p class="forecast-summary">
+            Next 12 hours in a quick timeline.
+          </p>
+          <div class="hourly-timeline" id="hourlyTimeline" aria-label="12-hour timeline forecast">
+          </div>
+        </article>
+        <article class="card" id="forecastCard">
+          <h3>5-Day Forecast</h3>
+          <p class="forecast-summary">
+            After you search a city, you will see a compact 5-day outlook here with min/max temperature and conditions.
+          </p>
+          <div class="forecast-grid" id="forecastGrid" aria-label="5-day forecast">
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
