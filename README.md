@@ -2,20 +2,6 @@
 
 A lightweight weather dashboard built with vanilla HTML, CSS, and JavaScript.
 
-## Project Snapshots
-
-### Home / Dashboard Preview
-
-The home dashboard is built with a modern hero section, weather cards, timeline blocks, and forecast panels to keep key weather information easy to scan.
-
-![SkySense dashboard snapshot](./screenshots/mobile-responsive.png)
-
-### Mobile Responsive View
-
-The layout adapts for phone screens with compact spacing, full-width controls, and stack-based cards so users can search and read weather insights comfortably on smaller devices.
-
-![SkySense mobile responsive snapshot](./screenshots/mobile-responsive.png)
-
 ## Features
 
 - Search weather by city name with geocoding support.
