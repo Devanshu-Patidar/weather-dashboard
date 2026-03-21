@@ -5,12 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SkySense Weather</title>
   <link rel="stylesheet" href="style.css" />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    integrity="sha512-SnH5WK+bZxgPHs44uWix+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkR4j8V+AN13uQjo9l+f9CpK8yK9QW8Yh8gA=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
   <header class="hero" id="home">
+    <div class="hero-artifacts" aria-hidden="true">
+      <span class="artifact artifact-orb artifact-orb-1"></span>
+      <span class="artifact artifact-orb artifact-orb-2"></span>
+      <span class="artifact artifact-orb artifact-orb-3"></span>
+      <span class="artifact artifact-ring"></span>
+      <span class="artifact artifact-grid"></span>
+      <span class="artifact artifact-line artifact-line-1"></span>
+      <span class="artifact artifact-line artifact-line-2"></span>
+      <svg class="artifact artifact-wave" viewBox="0 0 1200 220" preserveAspectRatio="none">
+        <path d="M0,128 C180,82 320,190 510,148 C670,113 750,36 910,56 C1048,72 1124,132 1200,156 L1200,220 L0,220 Z"></path>
+      </svg>
+    </div>
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle day and night theme">
       Day
     </button>
@@ -21,17 +40,31 @@
         SkySense is a simple weather app that not only shows numbers like temperature and wind speed,
         but also tells you in plain language how to prepare for the day.
       </p>
+      <div class="hero-badges">
+        <div class="hero-badge">
+          <i class="badge-icon fa-solid fa-cloud-sun" aria-hidden="true"></i>
+          <span>Live Conditions</span>
+        </div>
+        <div class="hero-badge">
+          <i class="badge-icon fa-solid fa-location-crosshairs" aria-hidden="true"></i>
+          <span>Location Based</span>
+        </div>
+        <div class="hero-badge">
+          <i class="badge-icon fa-solid fa-lightbulb" aria-hidden="true"></i>
+          <span>Smart Suggestions</span>
+        </div>
+      </div>
       <div class="hero-highlights">
         <div class="highlight-card">
-          <h3>Smart Prep Tips</h3>
+          <h3><i class="card-icon fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>Smart Prep Tips</h3>
           <p>We turn raw weather data into outfit and activity suggestions, so you instantly know what to wear and what to plan.</p>
         </div>
         <div class="highlight-card">
-          <h3>Location Aware</h3>
+          <h3><i class="card-icon fa-solid fa-map-location-dot" aria-hidden="true"></i>Location Aware</h3>
           <p>Use your current location or search any city to get live weather powered by a trusted weather API.</p>
         </div>
         <div class="highlight-card">
-          <h3>Young & Minimal</h3>
+          <h3><i class="card-icon fa-solid fa-palette" aria-hidden="true"></i>Young & Minimal</h3>
           <p>Clean layout, soft gradients and tiny animations keep the interface modern and distraction-free.</p>
         </div>
       </div>
