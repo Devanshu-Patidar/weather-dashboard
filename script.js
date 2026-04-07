@@ -444,18 +444,55 @@ function uvTierLabel(uvi) {
   return "Extreme";
 }
 
+function parseUvScalar(v) {
+  if (v == null || v === "") return null;
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function pickHourlyUvFromOpenMeteo(j) {
+  const times = j?.hourly?.time;
+  const uvs = j?.hourly?.uv_index;
+  if (!Array.isArray(times) || !Array.isArray(uvs) || !times.length) return null;
+  const now = Date.now();
+  let best = null;
+  let bestDiff = Infinity;
+  for (let i = 0; i < times.length; i++) {
+    const t = new Date(times[i]).getTime();
+    if (Number.isNaN(t)) continue;
+    const diff = Math.abs(t - now);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = parseUvScalar(uvs[i]);
+    }
+  }
+  return best;
+}
+
 async function fetchUvIndexOpenMeteo(lat, lon) {
   const la = Number(lat);
   const lo = Number(lon);
   if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
   try {
-    const url = `${OPEN_METEO_UV}?latitude=${la}&longitude=${lo}&current=uv_index&timezone=auto`;
+    const url = `${OPEN_METEO_UV}?latitude=${la}&longitude=${lo}&current=uv_index&hourly=uv_index&timezone=auto`;
     const res = await fetch(url);
     if (!res.ok) return null;
     const j = await res.json();
-    const uvi = j?.current?.uv_index;
-    return typeof uvi === "number" && Number.isFinite(uvi) ? uvi : null;
-  } catch {
+    if (j?.error) {
+      console.warn("Open-Meteo:", j.reason || j.error);
+      return null;
+    }
+    let uvi = parseUvScalar(j?.current?.uv_index);
+    if (uvi == null) {
+      uvi = pickHourlyUvFromOpenMeteo(j);
+    }
+    if (uvi == null && Array.isArray(j?.hourly?.uv_index) && j.hourly.uv_index.length) {
+      uvi = parseUvScalar(j.hourly.uv_index[0]);
+    }
+    return uvi;
+  } catch (e) {
+    console.warn("Open-Meteo UV fetch failed:", e);
     return null;
   }
 }
