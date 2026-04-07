@@ -99,14 +99,6 @@ const graphUvValueEl = document.getElementById("graphUvValue");
 const graphUvSubEl = document.getElementById("graphUvSub");
 const graphSunriseEl = document.getElementById("graphSunrise");
 const graphSunsetEl = document.getElementById("graphSunset");
-const graphPageLoaderEl = document.getElementById("graphPageLoader");
-
-function hideGraphPageLoader() {
-  if (!graphPageLoaderEl) return;
-  graphPageLoaderEl.classList.add("hidden");
-  graphPageLoaderEl.setAttribute("aria-hidden", "true");
-  graphPageLoaderEl.setAttribute("aria-busy", "false");
-}
 
 let tempChart = null;
 let humidityChart = null;
@@ -559,37 +551,33 @@ if (graphThemeToggle) {
 
 async function init() {
   initGraphTheme();
-  try {
-    const [result, uv] = await Promise.all([
-      fetchData(),
-      lat && lon ? fetchUvIndexOpenMeteo(lat, lon) : Promise.resolve(null),
-    ]);
-    if (!result) {
-      return;
-    }
-    const { forecast, air, weather } = result;
-    const tz = forecast?.city?.timezone ?? weather?.timezone ?? 0;
-    if (graphLocationEl) {
-      if (weather?.name) {
-        graphLocationEl.textContent = `${weather.name}, ${weather.sys?.country ?? ""}`;
-      } else {
-        graphLocationEl.textContent = `Lat ${lat}, Lon ${lon}`;
-      }
-    }
-    if (graphUvValueEl) graphUvValueEl.textContent = uv != null ? uv.toFixed(1) : "—";
-    if (graphUvSubEl) graphUvSubEl.textContent = uv != null ? uvTierLabel(uv) : "";
-    if (graphSunriseEl) graphSunriseEl.textContent = formatLocationClockFromUnix(weather?.sys?.sunrise, tz);
-    if (graphSunsetEl) graphSunsetEl.textContent = formatLocationClockFromUnix(weather?.sys?.sunset, tz);
-    const list24 = build24hData(forecast.list, tz);
-    const hourlyList = buildHourly24h(forecast.list || [], tz);
-    const chartList = hourlyList.length >= 12 ? hourlyList : list24.length > 0 ? list24 : (forecast.list || []).slice(0, 8);
-    lastChartData = { list: chartList, tz };
-    renderTempChart(chartList, tz);
-    renderHumidityChart(chartList, tz);
-    renderAQI(air?.list?.[0] ?? null);
-  } finally {
-    hideGraphPageLoader();
+  const [result, uv] = await Promise.all([
+    fetchData(),
+    lat && lon ? fetchUvIndexOpenMeteo(lat, lon) : Promise.resolve(null),
+  ]);
+  if (!result) {
+    return;
   }
+  const { forecast, air, weather } = result;
+  const tz = forecast?.city?.timezone ?? weather?.timezone ?? 0;
+  if (graphLocationEl) {
+    if (weather?.name) {
+      graphLocationEl.textContent = `${weather.name}, ${weather.sys?.country ?? ""}`;
+    } else {
+      graphLocationEl.textContent = `Lat ${lat}, Lon ${lon}`;
+    }
+  }
+  if (graphUvValueEl) graphUvValueEl.textContent = uv != null ? uv.toFixed(1) : "—";
+  if (graphUvSubEl) graphUvSubEl.textContent = uv != null ? uvTierLabel(uv) : "";
+  if (graphSunriseEl) graphSunriseEl.textContent = formatLocationClockFromUnix(weather?.sys?.sunrise, tz);
+  if (graphSunsetEl) graphSunsetEl.textContent = formatLocationClockFromUnix(weather?.sys?.sunset, tz);
+  const list24 = build24hData(forecast.list, tz);
+  const hourlyList = buildHourly24h(forecast.list || [], tz);
+  const chartList = hourlyList.length >= 12 ? hourlyList : list24.length > 0 ? list24 : (forecast.list || []).slice(0, 8);
+  lastChartData = { list: chartList, tz };
+  renderTempChart(chartList, tz);
+  renderHumidityChart(chartList, tz);
+  renderAQI(air?.list?.[0] ?? null);
 }
 
 init();

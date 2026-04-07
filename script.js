@@ -136,15 +136,7 @@ initNotifyControls();
 if (showGraphBtn) {
   showGraphBtn.addEventListener("click", () => {
     if (lastCoords && lastCoords.lat != null && lastCoords.lon != null) {
-      const navLoader = document.getElementById("graphNavLoader");
-      if (navLoader) {
-        navLoader.classList.remove("hidden");
-        navLoader.setAttribute("aria-busy", "true");
-        navLoader.removeAttribute("aria-hidden");
-      }
-      requestAnimationFrame(() => {
-        window.location.href = `graph.html?lat=${lastCoords.lat}&lon=${lastCoords.lon}`;
-      });
+      window.location.href = `graph.html?lat=${lastCoords.lat}&lon=${lastCoords.lon}`;
     }
   });
 }
