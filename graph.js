@@ -144,16 +144,30 @@ async function fetchUvIndexOpenMeteo(lat, lon) {
   }
 }
 
-function formatTimeLabel(utcSeconds, tzOffset) {
+/** Single-line labels for Chart.js (arrays become multi-line and crowd on mobile). */
+function chartLayoutNarrow() {
+  return typeof window !== "undefined" && window.innerWidth <= 576;
+}
+
+function formatChartTimeLabel(utcSeconds, tzOffset) {
   const d = new Date((utcSeconds + (tzOffset || 0)) * 1000);
-  // We add tzOffset (seconds) ourselves, so read hours in UTC to avoid double-applying the browser timezone.
   let hours = d.getUTCHours();
-  const suffix = hours >= 12 ? "PM" : "AM";
+  const suffix = hours >= 12 ? "pm" : "am";
   hours = hours % 12;
   if (hours === 0) hours = 12;
-  const timePart = `${hours.toString().padStart(2, "0")}:00`;
-  // Return a two-line label: first the time, then AM/PM underneath
-  return [timePart, suffix];
+  const m = d.getUTCMinutes();
+  if (m === 0) {
+    return `${hours}${suffix}`;
+  }
+  return `${hours}:${m.toString().padStart(2, "0")}${suffix}`;
+}
+
+function shouldShowChartDataLabel(dataIndex, dataLength) {
+  if (dataLength <= 8) return true;
+  if (!chartLayoutNarrow()) return true;
+  if (dataIndex === 0 || dataIndex === dataLength - 1) return true;
+  const step = dataLength > 16 ? 4 : 3;
+  return dataIndex % step === 0;
 }
 
 function formatTimeLabelWithDay(utcSeconds, tzOffset) {
@@ -289,7 +303,8 @@ function getChartColors() {
 function renderTempChart(data, tzOffset) {
   const canvas = document.getElementById("tempChart");
   if (!canvas || !data || data.length === 0) return;
-  const labels = data.map((e) => formatTimeLabel(e.dt, tzOffset));
+  const labels = data.map((e) => formatChartTimeLabel(e.dt, tzOffset));
+  const nPoints = data.length;
   const temps = data
     .map((e) => (typeof e?.main?.temp === "number" ? Math.round(e.main.temp * 10) / 10 : null));
   const validTemps = temps.filter((t) => typeof t === "number" && Number.isFinite(t));
@@ -306,6 +321,7 @@ function renderTempChart(data, tzOffset) {
   const ctx = canvas.getContext("2d");
   if (tempChart) tempChart.destroy();
   const datalabelsPlugin = typeof ChartDataLabels !== "undefined";
+  const narrow = chartLayoutNarrow();
   tempChart = new Chart(ctx, {
     type: "line",
     data: {
@@ -325,15 +341,18 @@ function renderTempChart(data, tzOffset) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      layout: { padding: narrow ? { top: 6, bottom: 2 } : { top: 4 } },
       plugins: {
         legend: { display: false },
+        tooltip: { intersect: false },
         datalabels: datalabelsPlugin ? {
-          display: true,
+          display: (ctx) => shouldShowChartDataLabel(ctx.dataIndex, nPoints),
           anchor: "end",
           align: "top",
-          formatter: (v) => v + "°",
+          formatter: (v) => (v != null ? `${v}°` : ""),
           color: c.ticks,
-          font: { size: 10 },
+          font: { size: narrow ? 8 : 10, weight: "500" },
         } : { display: false },
       },
       scales: {
@@ -341,9 +360,19 @@ function renderTempChart(data, tzOffset) {
           beginAtZero: false,
           ...(validTemps.length ? { min: yMin, max: Math.max(yMin + 1, yMax) } : {}),
           grid: { color: c.grid },
-          ticks: { color: c.ticks },
+          ticks: { color: c.ticks, font: { size: narrow ? 10 : 11 } },
         },
-        x: { grid: { color: c.gridX }, ticks: { color: c.ticks, maxRotation: 45 } },
+        x: {
+          grid: { color: c.gridX },
+          ticks: {
+            color: c.ticks,
+            maxRotation: narrow ? 0 : 40,
+            minRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: narrow ? 6 : 14,
+            font: { size: narrow ? 10 : 11 },
+          },
+        },
       },
     },
   });
@@ -352,7 +381,8 @@ function renderTempChart(data, tzOffset) {
 function renderHumidityChart(data, tzOffset) {
   const canvas = document.getElementById("humidityChart");
   if (!canvas || !data || data.length === 0) return;
-  const labels = data.map((e) => formatTimeLabel(e.dt, tzOffset));
+  const labels = data.map((e) => formatChartTimeLabel(e.dt, tzOffset));
+  const nPoints = data.length;
   const hum = data.map((e) => e.main?.humidity ?? 0);
   const c = getChartColors();
   // Highlight "now" (first point) on the humidity graph
@@ -362,6 +392,7 @@ function renderHumidityChart(data, tzOffset) {
   const ctx = canvas.getContext("2d");
   if (humidityChart) humidityChart.destroy();
   const datalabelsPlugin = typeof ChartDataLabels !== "undefined";
+  const narrow = chartLayoutNarrow();
   humidityChart = new Chart(ctx, {
     type: "line",
     data: {
@@ -382,20 +413,38 @@ function renderHumidityChart(data, tzOffset) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      layout: { padding: narrow ? { top: 6, bottom: 2 } : { top: 4 } },
       plugins: {
         legend: { display: false },
+        tooltip: { intersect: false },
         datalabels: datalabelsPlugin ? {
-          display: true,
+          display: (ctx) => shouldShowChartDataLabel(ctx.dataIndex, nPoints),
           anchor: "end",
           align: "top",
-          formatter: (v) => v,
+          formatter: (v) => (v != null ? String(v) : ""),
           color: c.ticks,
-          font: { size: 10 },
+          font: { size: narrow ? 8 : 10, weight: "500" },
         } : { display: false },
       },
       scales: {
-        y: { beginAtZero: true, max: 100, grid: { color: c.grid }, ticks: { color: c.ticks } },
-        x: { grid: { color: c.gridX }, ticks: { color: c.ticks, maxRotation: 45 } },
+        y: {
+          beginAtZero: true,
+          max: 100,
+          grid: { color: c.grid },
+          ticks: { color: c.ticks, font: { size: narrow ? 10 : 11 } },
+        },
+        x: {
+          grid: { color: c.gridX },
+          ticks: {
+            color: c.ticks,
+            maxRotation: narrow ? 0 : 40,
+            minRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: narrow ? 6 : 14,
+            font: { size: narrow ? 10 : 11 },
+          },
+        },
       },
     },
   });
@@ -490,3 +539,14 @@ async function init() {
 }
 
 init();
+
+let chartResizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(chartResizeTimer);
+  chartResizeTimer = setTimeout(() => {
+    if (lastChartData) {
+      renderTempChart(lastChartData.list, lastChartData.tz);
+      renderHumidityChart(lastChartData.list, lastChartData.tz);
+    }
+  }, 200);
+});
