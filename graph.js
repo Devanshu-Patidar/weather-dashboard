@@ -154,13 +154,21 @@ function pickHourlyUvFromOpenMeteo(j) {
   return best;
 }
 
+function fetchWithTimeout(url, timeoutMs, options) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  const merged = { ...(options || {}), signal: controller.signal };
+  return fetch(url, merged)
+    .finally(() => clearTimeout(id));
+}
+
 async function fetchUvIndexOpenMeteo(lat, lon) {
   const la = Number(lat);
   const lo = Number(lon);
   if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
   try {
     const url = `${OPEN_METEO_UV}?latitude=${la}&longitude=${lo}&current=uv_index&hourly=uv_index&timezone=auto`;
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url, 3000);
     if (!res.ok) return null;
     const j = await res.json();
     if (j?.error) {
@@ -294,9 +302,9 @@ async function fetchData() {
   setStatus("Loading real-time data...", false);
   try {
     const [forecastRes, airRes, weatherRes] = await Promise.all([
-      fetch(`${FORECAST_URL}?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`),
-      fetch(`${AIR_POLLUTION_URL}?lat=${lat}&lon=${lon}&appid=${apiKey}`),
-      fetch(`${WEATHER_URL}?lat=${lat}&lon=${lon}&appid=${apiKey}`),
+      fetchWithTimeout(`${FORECAST_URL}?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`, 5000),
+      fetchWithTimeout(`${AIR_POLLUTION_URL}?lat=${lat}&lon=${lon}&appid=${apiKey}`, 5000),
+      fetchWithTimeout(`${WEATHER_URL}?lat=${lat}&lon=${lon}&appid=${apiKey}`, 5000),
     ]);
     const [forecast, air, weather] = await Promise.all([
       forecastRes.ok ? forecastRes.json() : Promise.resolve(null),
@@ -310,7 +318,11 @@ async function fetchData() {
     setStatus("", false);
     return { forecast, air, weather };
   } catch (e) {
-    setStatus("Failed to load data. Please try again.", true);
+    if (e && e.name === "AbortError") {
+      setStatus("Took too long to load live weather. Please try again in a moment.", true);
+    } else {
+      setStatus("Failed to load data. Please try again.", true);
+    }
     return null;
   }
 }
