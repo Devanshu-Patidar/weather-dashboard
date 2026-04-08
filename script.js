@@ -520,12 +520,48 @@ function buildWeatherAlerts(weather, forecastList, uvIndex, timezoneOffsetSecond
   const temp = weather.main?.temp;
   const feels = weather.main?.feels_like;
   const humidity = weather.main?.humidity;
+  const pressure = weather.main?.pressure;
+  const visibilityM = weather.visibility;
 
   const push = (level, id, tag, title, text, iconClass) => {
     alerts.push({ level, id, tag, title, text, iconClass });
   };
 
   const tz = typeof timezoneOffsetSeconds === "number" ? timezoneOffsetSeconds : weather.timezone ?? 0;
+
+  const dangerLabelFromWeatherId = (id) => {
+    if (typeof id !== "number") return "";
+    if (id === 781 || id === 900) return "Tornado";
+    if (id === 771) return "Squall";
+    if (id === 762) return "Volcanic ash";
+    if (id === 761) return "Dust storm";
+    if (id === 731) return "Sand/dust whirls";
+    return "";
+  };
+
+  const buildDangerDetails = () => {
+    const parts = [];
+    const label = dangerLabelFromWeatherId(wid);
+    const reported = label || capitalizeFirstLetter(desc || main) || "Extreme weather";
+    parts.push(`Reported: ${reported}${typeof wid === "number" ? ` (code ${wid})` : ""}.`);
+
+    if (windKmh != null) {
+      const gust = windGustKmh == null ? "" : ` (gusts ~${windGustKmh} km/h)`;
+      const dir = windDeg == null ? "" : ` from ${Math.round(windDeg)}°`;
+      parts.push(`Wind: ~${windKmh} km/h${gust}${dir}.`);
+    }
+
+    if (typeof visibilityM === "number") {
+      parts.push(`Visibility: ${formatVisibilityMeters(visibilityM)}.`);
+    }
+
+    if (typeof pressure === "number") {
+      parts.push(`Pressure: ${Math.round(pressure)} hPa.`);
+    }
+
+    parts.push("Stay indoors if possible and follow official guidance/alerts for your area.");
+    return parts.join(" ");
+  };
 
   if (typeof wid === "number") {
     if (wid >= 200 && wid < 300) {
@@ -549,7 +585,14 @@ function buildWeatherAlerts(weather, forecastList, uvIndex, timezoneOffsetSecond
     } else if (wid >= 600 && wid <= 602) {
       push("warning", "snow", "WINTER ADVISORY", "Snow", "Snow or sleet — plan for slower travel and dress in warm layers.", "fa-solid fa-snowflake");
     } else if (wid >= 781 || wid === 900) {
-      push("severe", "extreme", "EXTREME WEATHER", "Dangerous conditions", "Dangerous weather reported for this location. Follow official guidance.", "fa-solid fa-triangle-exclamation");
+      push(
+        "severe",
+        "extreme",
+        "EXTREME WEATHER",
+        "Dangerous conditions",
+        buildDangerDetails(),
+        "fa-solid fa-triangle-exclamation"
+      );
     }
   }
 
