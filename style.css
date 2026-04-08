@@ -160,19 +160,63 @@ input {
 .hero-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.38rem 0.68rem;
-  border-radius: 999px;
+  gap: 0.5rem;
+  padding: 0.58rem 0.9rem;
+  border-radius: 0.9rem;
   font-size: 0.8rem;
-  color: #dbeafe;
-  background: rgba(30, 41, 59, 0.7);
-  border: 1px solid rgba(148, 163, 184, 0.45);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: rgba(226, 232, 240, 0.95);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.72), rgba(15, 23, 42, 0.62));
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  box-shadow: 0 12px 28px rgba(2, 6, 23, 0.32);
+  backdrop-filter: blur(12px);
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background 140ms ease;
+  min-height: 2.35rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-badge::after {
+  content: "";
+  position: absolute;
+  left: 0.85rem;
+  right: 0.85rem;
+  bottom: 0.38rem;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.0), rgba(56, 189, 248, 0.65), rgba(99, 102, 241, 0.6), rgba(34, 197, 94, 0.0));
+  opacity: 0.65;
+  transform: scaleX(0.72);
+  transform-origin: center;
+  transition: opacity 140ms ease, transform 140ms ease;
+  pointer-events: none;
+}
+
+.hero-badge:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, rgba(51, 65, 85, 0.78), rgba(15, 23, 42, 0.66));
+  border-color: rgba(147, 197, 253, 0.62);
+  box-shadow: 0 18px 42px rgba(2, 6, 23, 0.42);
+}
+
+.hero-badge:hover::after {
+  opacity: 0.95;
+  transform: scaleX(1);
 }
 
 .badge-icon {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   line-height: 1;
-  color: #7dd3fc;
+  color: rgba(125, 211, 252, 0.95);
+  display: inline-block;
+  /* Ensure Font Awesome glyph renders even inside flex */
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+}
+
+.badge-icon::before {
+  display: block;
 }
 
 .app-title {
@@ -1037,13 +1081,29 @@ input {
   }
 
   .hero-badges {
-    gap: 0.45rem;
-    margin-bottom: 0.8rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin-bottom: 0.85rem;
   }
 
   .hero-badge {
-    font-size: 0.74rem;
-    padding: 0.32rem 0.56rem;
+    width: 100%;
+    justify-content: flex-start;
+    font-size: 0.78rem;
+    padding: 0.56rem 0.72rem;
+    border-radius: 0.85rem;
+    min-height: 2.45rem;
+  }
+
+  .hero-badge::after {
+    left: 0.7rem;
+    right: 0.7rem;
+    bottom: 0.34rem;
+  }
+
+  .badge-icon {
+    font-size: 0.92rem;
   }
 
   .search-group {
@@ -1117,6 +1177,12 @@ input {
   .city-match-btn {
     width: 100%;
     justify-content: center;
+  }
+}
+
+@media (max-width: 359px) {
+  .hero-badges {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1245,14 +1311,29 @@ html.theme-light .artifact-line {
 }
 
 html.theme-light .hero-badge {
-  background: rgba(255, 255, 255, 0.78);
-  color: #1e293b;
-  border-color: rgba(148, 163, 184, 0.55);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(241, 245, 249, 0.82));
+  color: rgba(15, 23, 42, 0.86);
+  border-color: rgba(148, 163, 184, 0.5);
+  box-shadow: 0 12px 26px rgba(148, 163, 184, 0.22);
 }
 
 html.theme-light .badge-icon,
 html.theme-light .card-icon {
   color: #1d4ed8;
+}
+
+html.theme-light .hero-badge::after {
+  opacity: 0.55;
+  background: linear-gradient(90deg, rgba(29, 78, 216, 0.0), rgba(29, 78, 216, 0.55), rgba(99, 102, 241, 0.45), rgba(29, 78, 216, 0.0));
+}
+
+html.theme-light .hero-badge:hover {
+  border-color: rgba(37, 99, 235, 0.35);
+  box-shadow: 0 18px 40px rgba(148, 163, 184, 0.3);
+}
+
+html.theme-light .badge-icon {
+  color: rgba(15, 23, 42, 0.82);
 }
 
 html.theme-light .weather-icon-animated {
@@ -1463,7 +1544,8 @@ html.theme-light .hourly-time {
   .artifact-ring,
   .highlight-card,
   .primary-btn,
-  .secondary-btn {
+  .secondary-btn,
+  .hero-badge {
     animation: none;
     transition: none;
   }

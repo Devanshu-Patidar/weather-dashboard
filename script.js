@@ -269,7 +269,7 @@ function updateWeatherUI(data, options = {}) {
   const nowUtcSeconds = Math.floor(Date.now() / 1000);
   const localSeconds = nowUtcSeconds + (data.timezone || 0);
   const localDate = new Date(localSeconds * 1000);
-  updatedTimeEl.textContent = `Last updated: ${formatDateTime(localDate)}`;
+  updatedTimeEl.textContent = `Last updated: ${formatWallClockDateTime(localDate)}`;
   lastCoords = { lat: data.coord?.lat, lon: data.coord?.lon };
   if (showGraphBtn) {
     showGraphBtn.disabled = !(lastCoords?.lat != null && lastCoords?.lon != null);
@@ -399,17 +399,20 @@ function capitalizeFirstLetter(text) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-function formatTime(date) {
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
+// NOTE: Many timestamps are converted to "location wall-clock" by adding a timezone offset
+// and then creating a Date. In that case we MUST use UTC getters, otherwise the browser
+// applies the user's local timezone again and time/date becomes wrong.
+function formatWallClockTime(date) {
+  const hours = date.getUTCHours().toString().padStart(2, "0");
+  const minutes = date.getUTCMinutes().toString().padStart(2, "0");
   return `${hours}:${minutes}`;
 }
 
-function formatDateTime(date) {
-  const day = date.getDate().toString().padStart(2, "0");
+function formatWallClockDateTime(date) {
+  const day = date.getUTCDate().toString().padStart(2, "0");
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const month = monthNames[date.getMonth()] || "";
-  const time = formatTime(date);
+  const month = monthNames[date.getUTCMonth()] || "";
+  const time = formatWallClockTime(date);
   return `${day} ${month}, ${time}`;
 }
 
@@ -489,7 +492,20 @@ async function fetchUvIndexOpenMeteo(lat, lon) {
   }
 }
 
-function buildWeatherAlerts(weather, forecastList, uvIndex) {
+function formatLocalClockFromUtcUnix(utcUnixSeconds, timezoneOffsetSeconds) {
+  if (utcUnixSeconds == null || timezoneOffsetSeconds == null) return "--:--";
+  const d = new Date((utcUnixSeconds + timezoneOffsetSeconds) * 1000);
+  return formatWallClockTime(d);
+}
+
+function formatLocalDayTimeFromUtcUnix(utcUnixSeconds, timezoneOffsetSeconds) {
+  if (utcUnixSeconds == null || timezoneOffsetSeconds == null) return "--";
+  const d = new Date((utcUnixSeconds + timezoneOffsetSeconds) * 1000);
+  const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getUTCDay()] || "";
+  return `${weekday} ${formatWallClockTime(d)}`.trim();
+}
+
+function buildWeatherAlerts(weather, forecastList, uvIndex, timezoneOffsetSeconds) {
   const alerts = [];
   if (!weather) return alerts;
 
@@ -498,17 +514,38 @@ function buildWeatherAlerts(weather, forecastList, uvIndex) {
   const desc = weather.weather?.[0]?.description ?? "";
   const windMs = weather.wind?.speed;
   const windKmh = typeof windMs === "number" ? Math.round(windMs * 3.6) : null;
+  const windGustMs = weather.wind?.gust;
+  const windGustKmh = typeof windGustMs === "number" ? Math.round(windGustMs * 3.6) : null;
+  const windDeg = typeof weather.wind?.deg === "number" ? weather.wind.deg : null;
   const temp = weather.main?.temp;
+  const feels = weather.main?.feels_like;
+  const humidity = weather.main?.humidity;
 
   const push = (level, id, tag, title, text, iconClass) => {
     alerts.push({ level, id, tag, title, text, iconClass });
   };
 
+  const tz = typeof timezoneOffsetSeconds === "number" ? timezoneOffsetSeconds : weather.timezone ?? 0;
+
   if (typeof wid === "number") {
     if (wid >= 200 && wid < 300) {
-      push("severe", "storm", "STORM WARNING", "Thunderstorm", "Thunderstorms in the area. Seek shelter, avoid open ground and tall trees, and stay updated.", "fa-solid fa-bolt");
+      push(
+        "severe",
+        "storm",
+        "STORM WARNING",
+        "Thunderstorm",
+        `Thunderstorms in the area${windKmh != null ? ` with winds ~${windKmh} km/h` : ""}. Seek shelter, avoid open ground and tall trees, and stay updated.`,
+        "fa-solid fa-bolt"
+      );
     } else if (wid >= 502 && wid <= 504) {
-      push("severe", "heavy-rain", "HEAVY RAIN WARNING", "Heavy rainfall", "Very heavy rainfall possible. Watch for water on roads and avoid low-lying areas.", "fa-solid fa-cloud-showers-heavy");
+      push(
+        "severe",
+        "heavy-rain",
+        "HEAVY RAIN WARNING",
+        "Heavy rainfall",
+        `Very heavy rainfall possible. Watch for water on roads and avoid low-lying areas${humidity != null ? ` (humidity ${humidity}%)` : ""}.`,
+        "fa-solid fa-cloud-showers-heavy"
+      );
     } else if (wid >= 600 && wid <= 602) {
       push("warning", "snow", "WINTER ADVISORY", "Snow", "Snow or sleet — plan for slower travel and dress in warm layers.", "fa-solid fa-snowflake");
     } else if (wid >= 781 || wid === 900) {
@@ -517,20 +554,59 @@ function buildWeatherAlerts(weather, forecastList, uvIndex) {
   }
 
   if (/thunderstorm/i.test(main) && !alerts.some((a) => a.id === "storm")) {
-    push("warning", "storm-soft", "STORM ADVISORY", "Stormy conditions", capitalizeFirstLetter(desc || main) + ". Stay aware if you are outdoors.", "fa-solid fa-cloud-bolt");
+    push(
+      "warning",
+      "storm-soft",
+      "STORM ADVISORY",
+      "Stormy conditions",
+      `${capitalizeFirstLetter(desc || main)}.${windKmh != null ? ` Winds ~${windKmh} km/h.` : ""} Stay aware if you are outdoors.`,
+      "fa-solid fa-cloud-bolt"
+    );
   }
 
   if (windKmh != null && windKmh >= 70) {
-    push("severe", "wind-high", "HIGH WIND WARNING", "Very strong wind", `Winds around ${windKmh} km/h. Secure loose items and take care if driving.`, "fa-solid fa-wind");
+    const dir = windDeg == null ? "" : ` from ${Math.round(windDeg)}°`;
+    const gust = windGustKmh == null ? "" : ` (gusts ~${windGustKmh} km/h)`;
+    push(
+      "severe",
+      "wind-high",
+      "HIGH WIND WARNING",
+      "Very strong wind",
+      `Winds around ${windKmh} km/h${gust}${dir}. Secure loose items and take care if driving.`,
+      "fa-solid fa-wind"
+    );
   } else if (windKmh != null && windKmh >= 45) {
-    push("warning", "wind", "WIND ADVISORY", "Strong wind", `Winds around ${windKmh} km/h — a jacket and caution on bridges or exposed paths help.`, "fa-solid fa-wind");
+    const dir = windDeg == null ? "" : ` from ${Math.round(windDeg)}°`;
+    const gust = windGustKmh == null ? "" : ` (gusts ~${windGustKmh} km/h)`;
+    push(
+      "warning",
+      "wind",
+      "WIND ADVISORY",
+      "Strong wind",
+      `Winds around ${windKmh} km/h${gust}${dir} — caution on bridges/exposed roads helps.`,
+      "fa-solid fa-wind"
+    );
   }
 
   if (typeof temp === "number") {
     if (temp >= 38) {
-      push("warning", "heat", "HEAT ADVISORY", "Extreme heat", "Very high temperature. Hydrate, avoid strenuous midday activity, and watch for heat stress.", "fa-solid fa-temperature-high");
+      push(
+        "warning",
+        "heat",
+        "HEAT ADVISORY",
+        "Extreme heat",
+        `Very high temperature${feels != null ? ` (feels like ~${Math.round(feels)}°C)` : ""}. Hydrate, avoid strenuous midday activity, and watch for heat stress.`,
+        "fa-solid fa-temperature-high"
+      );
     } else if (temp <= -8) {
-      push("warning", "cold", "COLD ADVISORY", "Freezing cold", "Very low temperature. Layer up, cover skin, and limit time outside.", "fa-solid fa-temperature-low");
+      push(
+        "warning",
+        "cold",
+        "COLD ADVISORY",
+        "Freezing cold",
+        `Very low temperature${feels != null ? ` (feels like ~${Math.round(feels)}°C)` : ""}. Layer up, cover skin, and limit time outside.`,
+        "fa-solid fa-temperature-low"
+      );
     }
   }
 
@@ -542,14 +618,52 @@ function buildWeatherAlerts(weather, forecastList, uvIndex) {
 
   const list = Array.isArray(forecastList) ? forecastList : [];
   const now = Math.floor(Date.now() / 1000);
-  const soon = list.filter((e) => e && typeof e.dt === "number" && e.dt >= now && e.dt <= now + 6 * 3600);
-  const rainSoon = soon.some((e) => {
-    const id = e.weather?.[0]?.id;
-    const m = e.weather?.[0]?.main ?? "";
-    return (typeof id === "number" && id >= 500 && id < 600) || /rain|drizzle|thunderstorm/i.test(m);
-  });
-  if (rainSoon && !/rain|drizzle|thunderstorm/i.test(main)) {
-    push("info", "rain-ahead", "RAIN OUTLOOK", "Rain expected soon", "Forecast suggests wet conditions in the next several hours. Carry cover if you head out.", "fa-solid fa-umbrella");
+  const soon = list
+    .filter((e) => e && typeof e.dt === "number" && e.dt >= now && e.dt <= now + 12 * 3600)
+    .sort((a, b) => a.dt - b.dt);
+
+  const isWetEntry = (e) => {
+    const id = e?.weather?.[0]?.id;
+    const m = e?.weather?.[0]?.main ?? "";
+    return (typeof id === "number" && id >= 200 && id < 600) || /rain|drizzle|thunderstorm/i.test(m);
+  };
+
+  const wetStart = soon.find((e) => isWetEntry(e));
+  if (wetStart && !/rain|drizzle|thunderstorm/i.test(main)) {
+    const when = formatLocalDayTimeFromUtcUnix(wetStart.dt, tz);
+    const kind = wetStart.weather?.[0]?.main ?? "Rain";
+    const desc2 = wetStart.weather?.[0]?.description ?? "";
+    const mm3h =
+      typeof wetStart?.rain?.["3h"] === "number"
+        ? wetStart.rain["3h"]
+        : typeof wetStart?.snow?.["3h"] === "number"
+          ? wetStart.snow["3h"]
+          : null;
+    const mmText = mm3h == null ? "" : ` (~${mm3h.toFixed(1)} mm / 3h)`;
+    push(
+      "info",
+      "wet-ahead",
+      "FORECAST OUTLOOK",
+      `${kind} likely`,
+      `${desc2 ? capitalizeFirstLetter(desc2) : kind} expected around ${when}${mmText}. Carry cover and allow extra travel time.`,
+      "fa-solid fa-umbrella"
+    );
+  }
+
+  const strongWindSoon = soon
+    .filter((e) => typeof e?.wind?.speed === "number")
+    .map((e) => ({ e, kmh: Math.round(e.wind.speed * 3.6) }))
+    .find((x) => x.kmh >= 45);
+  if (strongWindSoon && windKmh != null && windKmh < 45) {
+    const when = formatLocalDayTimeFromUtcUnix(strongWindSoon.e.dt, tz);
+    push(
+      "info",
+      "wind-ahead",
+      "FORECAST OUTLOOK",
+      "Wind may strengthen",
+      `Forecast shows winds reaching ~${strongWindSoon.kmh} km/h around ${when}. Secure loose items and take care on two-wheelers.`,
+      "fa-solid fa-wind"
+    );
   }
 
   const order = { severe: 0, warning: 1, info: 2 };
@@ -565,11 +679,10 @@ function renderAlertsList(alerts) {
     wrap.className = "wx-alerts-empty-state";
     const t = document.createElement("p");
     t.className = "wx-alerts-empty-title";
-    t.textContent = "No active alerts";
+    t.textContent = "No alerts";
     const d = document.createElement("p");
     d.className = "wx-alerts-empty-desc";
-    d.textContent =
-      "Load a location to see notices here. We surface types like storm or heavy rain warning when the live and forecast data match.";
+    d.textContent = "Nothing notable detected right now for this location. If weather changes, alerts will appear here automatically.";
     const chips = document.createElement("div");
     chips.className = "wx-alerts-demo-chips";
     chips.setAttribute("aria-hidden", "true");
@@ -688,7 +801,7 @@ async function updateUvAndAlerts(weather, forecastList) {
   if (lastPrepContext) {
     applyPreparationSuggestions({ ...lastPrepContext, uvIndex: uv });
   }
-  const alerts = buildWeatherAlerts(weather, forecastList, uv);
+  const alerts = buildWeatherAlerts(weather, forecastList, uv, weather?.timezone ?? 0);
   renderAlertsList(alerts);
   maybeBrowserNotify(alerts);
 }
@@ -894,7 +1007,7 @@ function build12HourTimeline(list, timezoneOffsetSeconds) {
     const localMillis = targetUtcSeconds * 1000 + (timezoneOffsetSeconds || 0) * 1000;
     const localDate = new Date(localMillis);
     items.push({
-      timeLabel: i === 0 ? "Now" : formatTime(localDate),
+      timeLabel: i === 0 ? "Now" : formatWallClockTime(localDate),
       temp,
       icon: chosenWeather?.icon || "",
       description: chosenWeather?.description || "",
@@ -1018,5 +1131,6 @@ function renderForecast(days) {
 }
 function formatWeekday(date) {
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  return days[date.getDay ? date.getDay() : new Date(date).getDay()];
+  const d = date?.getTime ? date : new Date(date);
+  return days[d.getUTCDay()];
 }
